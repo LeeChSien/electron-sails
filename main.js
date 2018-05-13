@@ -15,24 +15,47 @@ const sailsApp = new Sails()
 let mainWindow
 
 //lift sails app
-function initializeSails() {
-  sailsApp.lift({
-    "paths": {
-      "public": 'assets'
-    },
-    "appPath": __dirname
-  }, function (err) {
-    if (err) {
-      console.log('Error occurred loading Sails app:', err);
-      return;
+function initializeSails(mainWindow) {
+  try {
+    // Ensure that the server App is in the project directory, so relative paths work as expected
+    // Electron start the App from root directory where is located executable file (.exe|.app)
+    // `cwd` is set in server repository, asar compilation is currently not working
+    // because `chdir` does not work into .asar files :(
+    try {
+        // set `chdir` to enable the use of the sails REST API into the Electron aplication
+        process.chdir(__dirname);
+    } catch (e) {
+        process.env.LOADSERVER_ERROR = {
+            error: e,
+            dirname : __dirname,
+            cwd: process.cwd()
+        }
+        console.error('The App is not available for asar compilation: ', process.env.LOADSERVER_ERROR)
+        return;
     }
-    console.log('Sails app loaded successfully!');
-    //after lifting load url
-    mainWindow.loadURL('http://localhost:1337');
-    mainWindow.webContents.on('did-finish-load', function() {
-      mainWindow.focus();
-    })
-  });
+
+    sailsApp.lift({
+      "appPath": __dirname,
+      "log": {
+        //"level": 'silent'
+      }
+    }, function (err) {
+      if (err) {
+        console.log('Error occurred loading Sails app:', err);
+        mainWindow.loadURL('data:,' + err);
+        return;
+      }
+      
+      console.log('Sails app loaded successfully!');
+      //after lifting load url
+      mainWindow.loadURL('http://localhost:1337');
+      mainWindow.webContents.on('did-finish-load', function() {
+        mainWindow.focus();
+      })
+    });
+  } catch(err) {
+    mainWindow.loadURL('data:,' + err);
+  }
 }
 
 function createWindow () {
@@ -50,7 +73,8 @@ function createWindow () {
     mainWindow = null
   });
 
-  initializeSails();
+  //mainWindow.loadURL('http://www.google.com');
+  initializeSails(mainWindow);
 }
 
 // This method will be called when Electron has finished

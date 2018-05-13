@@ -1,4 +1,8 @@
 {
+  "paths": {
+    "tmp": "dist/assets",
+    "public": "dist/assets"
+  },
   "generators": {
     "modules": {}
   },
